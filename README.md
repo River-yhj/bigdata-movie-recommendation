@@ -107,8 +107,6 @@ pig -f src/analyze/q3_genre_trend.pig
 ### Step 4 — 시각화
 `src/analyze/visualize.ipynb`를 Jupyter에서 열어 실행합니다.
 
----
-
 
 ---
 
