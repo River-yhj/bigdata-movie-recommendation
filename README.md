@@ -110,6 +110,6 @@ pig -f src/analyze/q3_genre_trend.pig
 
 ---
 
-## 8. AI 도구 사용 내역
+## 7. AI 도구 사용 내역
 
 - Claude: README 구조 제안, Pig 스크립트 디버깅
