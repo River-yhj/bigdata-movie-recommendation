@@ -77,8 +77,7 @@ bigdata-movie-recommendation/
 | 데이터셋 | 출처 | 수집 방법 | 형식 |
 |---|---|---|---|
 | 영화 메타데이터 | [TMDB API](https://developer.themoviedb.org/) | REST API (페이지 단위 수집) | JSON -> CSV |
-| 연도별 분할 데이터 | TMDB API discover/movie 엔드포인트 | 연도 파라미터로 분할 수집 | CSV |
-
+| 연도별 분할 데이터 | TMDB API discover/movie 엔드포인트 | 연도 파라미터로 분할 수집 (2015–2024) | CSV |
 원본 데이터는 `.gitignore`로 제외하며, `data/sample/` 에 500행 샘플만 커밋합니다.
 
 **수집 방법:** `src/ingest/fetch_tmdb.py`가 TMDB API를 페이지 단위로 호출하여 연도별 CSV로 저장 후 HDFS에 업로드합니다. 재실행 가능하도록 설계되어 있습니다.
