@@ -25,16 +25,19 @@
 수집          : Python (requests, 페이지 단위 자동 수집 + 연도별 분할 저장)
 저장          : HDFS (CSV -> 연도별 파티션)
 전처리/분석   : Apache Pig (Latin 스크립트) — JOIN, GROUP BY, FILTER, 집계
+                Apache Spark (DataFrame API) — 대용량 전처리 및 분석
 시각화        : Matplotlib / Seaborn (결과 노트북)
-실행 환경     : HDP Sandbox (Hadoop 3.x, Pig 0.17.x)
+실행 환경     : HDP Sandbox (Hadoop 3.x, Pig 0.17.x, Spark 2.x)
 ```
 
 **추후 확장 예정 (수업 진도에 맞춰 단계적 도입)**
 
 | 도구 | 역할 | 도입 시기 |
 |---|---|---|
-| Apache Spark | 대용량 전처리 및 DataFrame 분석 | 13주차 |
-| Apache Hive | HiveQL 기반 집계 쿼리 | 13주차 |
+| Apache Sqoop | RDBMS -> HDFS 데이터 적재 | 도입 완료 |
+| Apache Flume | 로그 데이터 수집 파이프라인 | 도입 완료 |
+| Apache Spark | 대용량 전처리 및 DataFrame 분석 | 도입 완료 |
+| Apache Hive | HiveQL 기반 집계 쿼리 | 14주차 |
 | Spark MLlib | ALS 협업 필터링 추천 모델 | 14주차 |
 
 ---
@@ -42,10 +45,10 @@
 ## 3. 시스템 아키텍처
 
 ```
-[데이터 수집]               [저장]           [처리/분석]            [출력]
-Python 수집 스크립트  ->   HDFS (원본 CSV) -> Apache Pig        -> Q1/Q2/Q3 결과
-(TMDB API 호출,             |                 (JOIN, GROUP BY,      |
- 연도별 분할 저장)          연도별 파티션      FILTER, 집계)        Matplotlib 시각화
+[데이터 수집]               [저장]           [처리/분석]                  [출력]
+Python 수집 스크립트  ->   HDFS (원본 CSV) -> Apache Pig              -> Q1/Q2/Q3 결과
+(TMDB API 호출,             |                 Apache Spark (DataFrame)    |
+ 연도별 분할 저장)          연도별 파티션                                Matplotlib 시각화
 ```
 
 ---
@@ -61,7 +64,8 @@ bigdata-movie-recommendation/
 │   ├── ingest/
 │   │   └── fetch_tmdb.py           # TMDB API 수집 + HDFS 업로드
 │   ├── pipeline/
-│   │   └── preprocess.pig          # 전처리 Pig 스크립트
+│   │   ├── preprocess.pig          # 전처리 Pig 스크립트
+│   │   └── preprocess_spark.py     # 전처리 Spark 스크립트
 │   └── analyze/
 │       ├── q1_genre_rating.pig     # Q1: 장르별 평점 분포
 │       ├── q2_budget_rating.pig    # Q2: 예산/수익과 평점 상관관계
@@ -77,7 +81,8 @@ bigdata-movie-recommendation/
 | 데이터셋 | 출처 | 수집 방법 | 형식 |
 |---|---|---|---|
 | 영화 메타데이터 | [TMDB API](https://developer.themoviedb.org/) | REST API (페이지 단위 수집) | JSON -> CSV |
-| 연도별 분할 데이터 | TMDB API discover/movie 엔드포인트 | 연도 파라미터로 분할 수집 (2015–2024) | CSV |
+| 연도별 분할 데이터 | TMDB API discover/movie 엔드포인트 | 연도 파라미터로 분할 수집 (2015-2024) | CSV |
+
 원본 데이터는 `.gitignore`로 제외하며, `data/sample/` 에 500행 샘플만 커밋합니다.
 
 **수집 방법:** `src/ingest/fetch_tmdb.py`가 TMDB API를 페이지 단위로 호출하여 연도별 CSV로 저장 후 HDFS에 업로드합니다. 재실행 가능하도록 설계되어 있습니다.
@@ -87,29 +92,34 @@ bigdata-movie-recommendation/
 ## 6. 실행 방법
 
 ### 사전 요건
-- HDP Sandbox 실행 중 (HDFS, Pig 접근 가능)
+- HDP Sandbox 실행 중 (HDFS, Pig, Spark 접근 가능)
 - Python 3.x, `requests` 패키지 설치
 - TMDB API 키 발급 ([tmdb.org](https://www.themoviedb.org/settings/api) 에서 무료 발급)
 
 ### Step 1 — 데이터 수집 및 HDFS 업로드
 ```bash
 export TMDB_API_KEY=your_api_key_here
-python src/ingest/fetch_tmdb.py
+python3 src/ingest/fetch_tmdb.py
 ```
 
-### Step 2 — 전처리
+### Step 2 — 전처리 (Pig)
 ```bash
 pig -f src/pipeline/preprocess.pig
 ```
 
-### Step 3 — 분석 쿼리 실행
+### Step 3 — 전처리 (Spark)
+```bash
+spark-submit src/pipeline/preprocess_spark.py
+```
+
+### Step 4 — 분석 쿼리 실행
 ```bash
 pig -f src/analyze/q1_genre_rating.pig
 pig -f src/analyze/q2_budget_rating.pig
 pig -f src/analyze/q3_genre_trend.pig
 ```
 
-### Step 4 — 시각화
+### Step 5 — 시각화
 `src/analyze/visualize.ipynb`를 Jupyter에서 열어 실행합니다.
 
 ---
