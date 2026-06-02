@@ -12,9 +12,9 @@
 
 | # | 분석 | 의의 |
 |---|---|---|
-| Q1 | **장르별 평점 분포** — 어떤 장르가 높은 평점을 받으며, 분포는 어떻게 다른가? | 콘텐츠 카테고리별 사용자 만족도 패턴 파악 |
+| Q1 | **장르별 평점 분포** — 어떤 장르가 높은 평점을 받으며, 투표 수 분포는 어떻게 다른가? | 콘텐츠 카테고리별 사용자 만족도 및 대중성 패턴 파악 |
 | Q2 | **예산/수익과 평점의 상관관계** — 제작비가 많이 든 영화가 평점도 높은가? | 흥행 요소와 작품성의 관계 분석 |
-| Q3 | **시대별 장르 흥망성쇠** — 1980년대부터 2020년대까지 장르 인기는 어떻게 변화했는가? | 영화 소비에서 나타나는 문화적 변화 포착 |
+| Q3 | **시대별 장르 흥망성쇠** — 2015년부터 2024년까지 장르 인기는 어떻게 변화했는가? | 영화 소비에서 나타나는 문화적 변화 포착 |
 
 ---
 
@@ -26,19 +26,9 @@
 저장          : HDFS (CSV -> 연도별 파티션)
 전처리/분석   : Apache Pig (Latin 스크립트) — JOIN, GROUP BY, FILTER, 집계
                 Apache Spark (DataFrame API) — 대용량 전처리 및 분석
-시각화        : Matplotlib / Seaborn (결과 노트북)
-실행 환경     : HDP Sandbox (Hadoop 3.x, Pig 0.17.x, Spark 2.x)
+시각화        : Apache Zeppelin (내장 차트)
+실행 환경     : HDP Sandbox (Hadoop 3.x, Pig 0.16.x, Spark 2.x)
 ```
-
-**추후 확장 예정 (수업 진도에 맞춰 단계적 도입)**
-
-| 도구 | 역할 | 도입 시기 |
-|---|---|---|
-| Apache Sqoop | RDBMS -> HDFS 데이터 적재 | 도입 완료 |
-| Apache Flume | 로그 데이터 수집 파이프라인 | 도입 완료 |
-| Apache Spark | 대용량 전처리 및 DataFrame 분석 | 도입 완료 |
-| Apache Hive | HiveQL 기반 집계 쿼리 | 14주차 |
-| Spark MLlib | ALS 협업 필터링 추천 모델 | 14주차 |
 
 ---
 
@@ -48,7 +38,7 @@
 [데이터 수집]               [저장]           [처리/분석]                  [출력]
 Python 수집 스크립트  ->   HDFS (원본 CSV) -> Apache Pig              -> Q1/Q2/Q3 결과
 (TMDB API 호출,             |                 Apache Spark (DataFrame)    |
- 연도별 분할 저장)          연도별 파티션                                Matplotlib 시각화
+ 연도별 분할 저장)          연도별 파티션                                Zeppelin 시각화
 ```
 
 ---
@@ -58,19 +48,20 @@ Python 수집 스크립트  ->   HDFS (원본 CSV) -> Apache Pig              ->
 ```
 bigdata-movie-recommendation/
 ├── README.md
+├── run_pipeline.sh                 # 전체 파이프라인 자동화 스크립트
 ├── data/
 │   └── README.md                   # 데이터 출처, 스키마, 다운로드 방법
 ├── src/
 │   ├── ingest/
-│   │   └── fetch_tmdb.py           # TMDB API 수집 + HDFS 업로드
-│   ├── pipeline/
-│   │   ├── preprocess.pig          # 전처리 Pig 스크립트
-│   │   └── preprocess_spark.py     # 전처리 Spark 스크립트
+│   │   ├── fetch_tmdb.py           # TMDB API 수집 + HDFS 업로드
+│   │   ├── fetch_budget.py         # 예산/수익 데이터 수집
+│   │   ├── convert_genres.py       # 장르 ID -> 장르명 변환
+│   │   └── join_budget.py          # 영화 데이터 + 예산 데이터 조인
 │   └── analyze/
 │       ├── q1_genre_rating.pig     # Q1: 장르별 평점 분포
+│       ├── q1_genre_rating_v2.pig  # Q1 v2: 장르별 평점 + 투표 수 분포
 │       ├── q2_budget_rating.pig    # Q2: 예산/수익과 평점 상관관계
-│       ├── q3_genre_trend.pig      # Q3: 시대별 장르 트렌드
-│       └── visualize.ipynb         # 결과 시각화 노트북
+│       └── q3_genre_trend.pig      # Q3: 시대별 장르 트렌드
 └── .gitignore
 ```
 
@@ -82,10 +73,9 @@ bigdata-movie-recommendation/
 |---|---|---|---|
 | 영화 메타데이터 | [TMDB API](https://developer.themoviedb.org/) | REST API (페이지 단위 수집) | JSON -> CSV |
 | 연도별 분할 데이터 | TMDB API discover/movie 엔드포인트 | 연도 파라미터로 분할 수집 (2015-2024) | CSV |
+| 예산/수익 데이터 | TMDB API /movie/{id} 엔드포인트 | 영화 ID별 상세 정보 수집 | CSV |
 
 원본 데이터는 `.gitignore`로 제외하며, `data/sample/` 에 500행 샘플만 커밋합니다.
-
-**수집 방법:** `src/ingest/fetch_tmdb.py`가 TMDB API를 페이지 단위로 호출하여 연도별 CSV로 저장 후 HDFS에 업로드합니다. 재실행 가능하도록 설계되어 있습니다.
 
 ---
 
@@ -95,32 +85,33 @@ bigdata-movie-recommendation/
 - HDP Sandbox 실행 중 (HDFS, Pig, Spark 접근 가능)
 - Python 3.x, `requests` 패키지 설치
 - TMDB API 키 발급 ([tmdb.org](https://www.themoviedb.org/settings/api) 에서 무료 발급)
+- API 키를 `.env` 파일에 저장 (`TMDB_API_KEY=your_key`)
 
-### Step 1 — 데이터 수집 및 HDFS 업로드
+### 전체 파이프라인 자동 실행
 ```bash
-export TMDB_API_KEY=your_api_key_here
-python3 src/ingest/fetch_tmdb.py
+bash run_pipeline.sh
 ```
 
-### Step 2 — 전처리 (Pig)
+### 단계별 실행
+
+#### Step 1 — 데이터 수집 및 HDFS 업로드
 ```bash
-pig -f src/pipeline/preprocess.pig
+source .env
+python3.6 src/ingest/fetch_tmdb.py
+python3.6 src/ingest/convert_genres.py
+python3.6 src/ingest/fetch_budget.py
+python3.6 src/ingest/join_budget.py
 ```
 
-### Step 3 — 전처리 (Spark)
+#### Step 2 — 분석 쿼리 실행
 ```bash
-spark-submit src/pipeline/preprocess_spark.py
-```
-
-### Step 4 — 분석 쿼리 실행
-```bash
-pig -f src/analyze/q1_genre_rating.pig
+pig -f src/analyze/q1_genre_rating_v2.pig
 pig -f src/analyze/q2_budget_rating.pig
 pig -f src/analyze/q3_genre_trend.pig
 ```
 
-### Step 5 — 시각화
-`src/analyze/visualize.ipynb`를 Jupyter에서 열어 실행합니다.
+#### Step 3 — 시각화
+Apache Zeppelin (localhost:9995) 에서 결과 확인
 
 ---
 
