@@ -38,9 +38,9 @@
 | Apache Flume | 로그 데이터 수집 파이프라인 | 도입 완료 |
 | Apache Spark | 대용량 전처리 및 DataFrame 분석 | 도입 완료 |
 | Apache Hive | HiveQL 기반 집계 쿼리 | 14주차 |
+~~| Spark MLlib | ALS 협업 필터링 추천 모델 | 14주차|~~
 
 ---
- --Spark MLlib  ALS 협업 필터링 추천 모델  14주차-- 
 
 spark MLlib은 데이터가 없어서 **불가능**
 
