@@ -38,9 +38,11 @@
 | Apache Flume | 로그 데이터 수집 파이프라인 | 도입 완료 |
 | Apache Spark | 대용량 전처리 및 DataFrame 분석 | 도입 완료 |
 | Apache Hive | HiveQL 기반 집계 쿼리 | 14주차 |
-| Spark MLlib | ALS 협업 필터링 추천 모델 | 14주차 |
+--| Spark MLlib | ALS 협업 필터링 추천 모델 | 14주차 |--
 
 ---
+spark MLlib은 데이터가 없어서 **불가능**
+
 
 ## 3. 시스템 아키텍처
 
@@ -121,9 +123,10 @@ pig -f src/analyze/q3_genre_trend.pig
 
 ### Step 5 — 시각화
 `src/analyze/visualize.ipynb`를 Jupyter에서 열어 실행합니다.
+혹은 zeppelin 사용
 
 ---
 
-## 7. AI 도구 사용 내역
+## 6. AI 도구 사용 내역
 
 - Claude: README 구조 제안, Pig 스크립트 디버깅
