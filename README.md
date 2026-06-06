@@ -118,3 +118,13 @@ Apache Zeppelin (localhost:9995) 에서 결과 확인
 ## 7. AI 도구 사용 내역
 
 - Claude: README 구조 제안, Pig 스크립트 디버깅
+
+## 8. Sample 데이터 실행법
+#### 1. 샘플 데이터 HDFS 업로드
+hdfs dfs -mkdir -p /user/maria_dev/movies/joined
+hdfs dfs -put data/sample/*.csv /user/maria_dev/movies/joined/
+
+#####2. Pig 분석 실행
+pig -f src/analyze/q1_genre_rating_v2.pig
+pig -f src/analyze/q2_budget_rating.pig
+pig -f src/analyze/q3_genre_trend.pig
