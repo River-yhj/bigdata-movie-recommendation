@@ -124,7 +124,7 @@ Apache Zeppelin (localhost:9995) 에서 결과 확인
 hdfs dfs -mkdir -p /user/maria_dev/movies/joined
 hdfs dfs -put data/sample/*.csv /user/maria_dev/movies/joined/
 
-#####2. Pig 분석 실행
+#### 2. Pig 분석 실행
 pig -f src/analyze/q1_genre_rating_v2.pig
 pig -f src/analyze/q2_budget_rating.pig
 pig -f src/analyze/q3_genre_trend.pig
