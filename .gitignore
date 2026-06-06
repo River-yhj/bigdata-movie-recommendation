@@ -1,4 +1,7 @@
-data/raw
-*.csv
+data/raw/
+data/processed/
+data/budget/
+data/joined/
 __pycache__/
 .env
+*.log
