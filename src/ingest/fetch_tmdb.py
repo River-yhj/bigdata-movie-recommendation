@@ -3,15 +3,14 @@ import csv
 import os
 import time
 import subprocess
-
 API_KEY = os.environ.get("TMDB_API_KEY", "your_api_key_here")
 BASE_URL = "https://api.themoviedb.org/3"
 OUTPUT_DIR = "/home/maria_dev/bigdata-movie-recommendation/data/raw"
 HDFS_DIR = "/user/maria_dev/movies"
-START_YEAR = 2015
+START_YEAR = 1980
 END_YEAR = 2024
 
-def fetch_movies_by_year(year, max_pages=20):
+def fetch_movies_by_year(year, max_pages=300):
     movies = []
     for page in range(1, max_pages + 1):
         url = f"{BASE_URL}/discover/movie"

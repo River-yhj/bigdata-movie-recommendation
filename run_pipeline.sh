@@ -34,7 +34,6 @@ echo ""
 echo "[Step 4] Joining budget data..."
 python3.6 src/ingest/join_budget.py
 echo "[Step 4] Done!"
-
 # Step 5 - Upload to HDFS
 echo ""
 echo "[Step 5] Uploading to HDFS..."

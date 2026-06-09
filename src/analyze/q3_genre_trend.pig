@@ -1,4 +1,4 @@
--- Q3: Genre trend by decade analysis
+-- Q3: Genre trend by period analysis (1980-2024)
 
 -- 1. Load data
 movies = LOAD '/user/maria_dev/movies/processed/*.csv'
@@ -22,11 +22,12 @@ movies_clean = FILTER movies BY
     genres != 'Unknown' AND
     vote_count >= 10;
 
--- 3. Split multiple genres and add year group
+-- 3. Split multiple genres and classify period
 genres_split = FOREACH movies_clean GENERATE
     FLATTEN(TOKENIZE(genres, '|')) AS genre,
     release_year,
-    (release_year < 2018 ? 'Early(2015-2017)' : 'Recent(2018-2024)') AS period;
+    (release_year < 2000 ? 'Early(1980-1999)' :
+        (release_year < 2015 ? 'Mid(2000-2014)' : 'Recent(2015-2024)')) AS period;
 
 -- 4. Group by period and genre
 grouped = GROUP genres_split BY (period, genre);
