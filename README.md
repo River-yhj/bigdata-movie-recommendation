@@ -1,6 +1,6 @@
 # 영화 추천 및 트렌드 분석 시스템
 
-> 빅데이터 프로그래밍 기말 프로젝트 — TMDB API 기반 배치 분석 파이프라인
+> 빅데이터 프로그래밍 기말 프로젝트 — TMDB API + MovieLens 기반 배치 분석 파이프라인
 
 ---
 
@@ -8,7 +8,7 @@
 
 스트리밍 플랫폼은 방대한 양의 영화 데이터를 보유하고 있지만, **어떤 장르가 사랑받고, 흥행과 평점이 연관되는지, 시대별로 트렌드가 어떻게 변화했는지**를 파악하려면 대규모 분산 처리가 필요함.
 
-이 프로젝트는 TMDB API를 통해 수집한 영화 데이터를 기반으로 빅데이터 파이프라인을 구축하여 아래 세 가지 분석을 합니다:
+이 프로젝트는 TMDB API와 MovieLens 데이터를 기반으로 빅데이터 파이프라인을 구축하여 아래 세 가지 분석을 합니다:
 
 | # | 분석 | 의의 |
 |---|---|---|
@@ -22,13 +22,13 @@
 
 ```
 데이터 출처   : TMDB API (themoviedb.org) — 영화 메타데이터, 장르, 예산, 수익, 평점
-               MovieLens Latest Dataset — 사용자 평점, 영화 링크 데이터
+               MovieLens Latest Dataset — 사용자 평점 (ratings.csv 891MB, 2,900만+ 건)
 수집          : Python (requests, 페이지 단위 자동 수집 + 연도별 분할 저장)
 저장          : HDFS (CSV -> 연도별 파티션)
 전처리/분석   : Apache Pig (Latin 스크립트) — JOIN, GROUP BY, FILTER, 집계
-               Apache Spark (DataFrame API) — 대용량 전처리 및 분석
+               Apache Spark (PySpark DataFrame API) — 대용량 MovieLens × TMDB JOIN 처리
 시각화        : Apache Zeppelin (내장 차트)
-실행 환경     : HDP Sandbox (Hadoop 3.x, Pig 0.16.x, Spark 2.x)
+실행 환경     : HDP Sandbox (Hadoop 3.x, Pig 0.16.x, Spark 2.x) + PySpark 로컬
 ```
 
 ---
@@ -37,23 +37,33 @@
 
 ```
 [데이터 수집]               [저장]           [처리/분석]                  [출력]
-Python 수집 스크립트  ->   HDFS (원본 CSV) -> Apache Pig              -> Q1/Q2/Q3 결과
-(TMDB API 호출,             |                 Apache Spark (DataFrame)    |
+Python 수집 스크립트  ->   HDFS (원본 CSV) -> Apache Pig (Q1/Q2/Q3)  -> 분석 결과
+(TMDB API 호출,             |                 PySpark (Q1/Q3 JOIN)       |
  연도별 분할 저장)          연도별 파티션                                Zeppelin 시각화
 MovieLens Dataset   ->
+(ratings 891MB)
 ```
 
 ---
 
-## 4. 레포지토리 구조
+## 4. 데이터 규모
+
+| 데이터셋 | 규모 | 비고 |
+|---|---|---|
+| TMDB 영화 메타데이터 | 약 78,593편 (1980~2024) | 장르, 평점, 예산, 수익 |
+| MovieLens ratings.csv | 891MB | 실제 사용자 평점 |
+| MovieLens × TMDB JOIN | 29,774,614건 | Q1/Q3 분석 대상 |
+
+---
+
+## 5. 레포지토리 구조
 
 ```
 bigdata-movie-recommendation/
 ├── README.md
 ├── run_pipeline.sh                 # 전체 파이프라인 자동화 스크립트
 ├── data/
-│   ├── sample/                     # 샘플 데이터 (연도별 100행)
-│   └── README.md                   # 데이터 출처, 스키마, 다운로드 방법
+│   └── sample/                     # 샘플 데이터 (연도별 100행)
 ├── src/
 │   ├── ingest/
 │   │   ├── fetch_tmdb.py           # TMDB API 수집 + HDFS 업로드
@@ -61,15 +71,18 @@ bigdata-movie-recommendation/
 │   │   ├── convert_genres.py       # 장르 ID -> 장르명 변환
 │   │   └── join_budget.py          # 영화 데이터 + 예산 데이터 조인
 │   └── analyze/
-│       ├── q1_genre_rating_v2.pig  # Q1: 장르별 평점 + 투표 수 분포
+│       ├── q1_genre_rating_v2.pig  # Q1: 장르별 평점 + 투표 수 분포 (TMDB)
+│       ├── q1_movielens.pig        # Q1: 장르별 실제 사용자 평점 (MovieLens × TMDB)
 │       ├── q2_budget_rating.pig    # Q2: 예산/수익과 평점 상관관계
-│       └── q3_genre_trend.pig      # Q3: 시대별 장르 트렌드
+│       ├── q3_genre_trend.pig      # Q3: 시대별 장르 트렌드 (TMDB)
+│       ├── q3_movielens.pig        # Q3: 시대별 장르 트렌드 (MovieLens × TMDB)
+│       └── movielens_analysis.py   # PySpark 로컬 분석 (MovieLens × TMDB 대용량 JOIN)
 └── .gitignore
 ```
 
 ---
 
-## 5. 데이터 출처
+## 6. 데이터 출처
 
 | 데이터셋 | 출처 | 수집 방법 | 형식 |
 |---|---|---|---|
@@ -82,7 +95,7 @@ bigdata-movie-recommendation/
 
 ---
 
-## 6. 실행 방법
+## 7. 실행 방법
 
 ### 사전 요건
 - HDP Sandbox 실행 중 (HDFS, Pig, Spark 접근 가능)
@@ -91,7 +104,7 @@ bigdata-movie-recommendation/
 - API 키를 `.env` 파일에 저장 (`TMDB_API_KEY=your_key`)
 - MovieLens Latest Dataset 다운로드 ([grouplens.org](https://grouplens.org/datasets/movielens/latest/))
 
-### 전체 파이프라인 자동 실행
+### 전체 파이프라인 자동 실행 (HDP Sandbox)
 ```bash
 bash run_pipeline.sh
 ```
@@ -107,14 +120,21 @@ python3.6 src/ingest/fetch_budget.py
 python3.6 src/ingest/join_budget.py
 ```
 
-#### Step 2 — 분석 쿼리 실행
+#### Step 2 — Pig 분석 (HDP Sandbox)
 ```bash
 pig -f src/analyze/q1_genre_rating_v2.pig
 pig -f src/analyze/q2_budget_rating.pig
 pig -f src/analyze/q3_genre_trend.pig
 ```
 
-#### Step 3 — 시각화
+#### Step 3 — PySpark 대용량 분석 (로컬, MovieLens × TMDB JOIN)
+```bash
+# 사전 요건: pyspark 설치 (uv pip install pyspark), Java 11+
+python src/analyze/movielens_analysis.py
+```
+결과는 `data/spark_output/` 에 저장됩니다.
+
+#### Step 4 — 시각화
 Apache Zeppelin (localhost:9995) 에서 결과 확인
 
 ### 샘플 데이터로 빠른 실행
@@ -134,6 +154,6 @@ pig -f src/analyze/q3_genre_trend.pig
 
 ---
 
-## 7. AI 도구 사용 내역
+## 8. AI 도구 사용 내역
 
-- Claude: README 구조 제안, Pig 스크립트 디버깅
+- Claude: README 구조 제안, Pig 스크립트 디버깅, PySpark 스크립트 작성
