@@ -156,4 +156,4 @@ pig -f src/analyze/q3_genre_trend.pig
 
 ## 8. AI 도구 사용 내역
 
-- Claude: README 구조 제안, Pig 스크립트 디버깅, PySpark 스크립트 작성
+- Claude (Anthropic): Pig 스크립트 디버깅, Zeppelin/PySpark 코드 디버깅, 보고서 구조 다듬기 및 표 작성 보조
