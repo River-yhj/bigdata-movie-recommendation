@@ -1,12 +1,12 @@
 -- Q3 MovieLens: Genre trend by period using actual user ratings
 
 -- 1. Load MovieLens ratings
-ratings = LOAD '/user/maria_dev/ml-latest/ratings_sample.csv'
+ratings = LOAD '$RATINGS_PATH'
     USING PigStorage(',')
     AS (userId:int, movieId:int, rating:float, timestamp:long);
 
 -- 2. Load MovieLens links
-links = LOAD '/user/maria_dev/ml-latest/links.csv'
+links = LOAD '$LINKS_PATH'
     USING PigStorage(',')
     AS (movieId:int, imdbId:chararray, tmdbId:int);
 
